@@ -1,8 +1,7 @@
-from flask import Flask
+from flask import Flask,jsonify
 import os
 from data_format import format_cardamom_message_list
 from scraper import fetch_small_cardamom_prices
-from notifier import send_telegram
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -12,10 +11,21 @@ PRODUCT_URL = "https://www.indianspices.com/marketing/price/domestic/daily-price
 app = Flask(__name__)
 
 def run_scraper():
-    fetched_data = fetch_small_cardamom_prices(PRODUCT_URL)
-    formatted_message = format_cardamom_message_list(fetched_data)
-    send_telegram(formatted_message)
+    try:
+        fetched_data = fetch_small_cardamom_prices(PRODUCT_URL)
+        response = format_cardamom_message_list(fetched_data)
+        return jsonify({
+            "success": True,
+            "count": len(response),
+            "data": response
+        }), 200
 
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+    
 @app.route("/")
 def health():
     return "Spices Board Scraper is running"
@@ -23,8 +33,7 @@ def health():
 @app.route("/run")
 def run():
     try:
-        run_scraper()
-        return "Scraping completed successfully"
+       return run_scraper()
     except Exception as e:
         return f"Error: {str(e)}", 500
 
